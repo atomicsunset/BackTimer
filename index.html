@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atomation BackTimer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: #e5e7eb;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+
+        .status-card {
+            transition: all 0.3s ease;
+        }
+
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .animate-pop {
+            animation: pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .alert-pulse {
+            animation: alertPulse 1s infinite;
+        }
+
+        @keyframes alertPulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.02); opacity: 0.95; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .flash-red {
+            animation: flashRed 0.5s infinite;
+        }
+
+        @keyframes flashRed {
+            0% { background-color: rgba(220, 38, 38, 0.2); border-color: rgba(220, 38, 38, 1); }
+            50% { background-color: rgba(220, 38, 38, 0.5); border-color: rgba(254, 202, 202, 1); }
+            100% { background-color: rgba(220, 38, 38, 0.2); border-color: rgba(220, 38, 38, 1); }
+        }
+
+        .flash-green {
+            animation: flashGreen 0.2s infinite;
+        }
+
+        @keyframes flashGreen {
+            0% { background-color: rgba(22, 163, 74, 0.8); color: white; }
+            50% { background-color: #000; color: #22c55e; }
+            100% { background-color: rgba(22, 163, 74, 0.8); color: white; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col md:flex-row h-screen overflow-hidden">
+
+    <!-- Left Panel: Inputs & List -->
+    <div class="w-full md:w-1/3 flex flex-col h-full border-r border-gray-700 bg-gray-900 z-20 shadow-xl">
+
+        <!-- Header / Target Input -->
+        <div class="p-4 border-b border-gray-700 bg-gray-800 shadow-lg z-10">
+            <h1 class="text-lg font-bold text-gray-100 mb-3 flex items-center gap-2">
+                <i class="fas fa-history text-purple-500"></i> Atomation BackTimer
+            </h1>
+
+            <div class="bg-gray-700 p-3 rounded-lg">
+                <label class="block text-[10px] uppercase tracking-wider text-gray-400 font-semibold mb-1">Radio Live Time (Hard Out)</label>
+                <div class="flex items-center gap-1">
+                    <div class="flex-1">
+                        <input type="number" id="targetH" placeholder="12" min="1" max="12" class="w-full bg-gray-900 border border-gray-600 rounded p-1 text-center text-lg text-white mono focus:ring-2 focus:ring-purple-500 focus:outline-none" oninput="calculate()">
+                        <span class="text-[10px] text-gray-500 text-center block">HR</span>
+                    </div>
+                    <span class="text-lg font-bold text-gray-500">:</span>
+                    <div class="flex-1">
+                        <input type="number" id="targetM" placeholder="00" min="0" max="59" class="w-full bg-gray-900 border border-gray-600 rounded p-1 text-center text-lg text-white mono focus:ring-2 focus:ring-purple-500 focus:outline-none" oninput="calculate()">
+                        <span class="text-[10px] text-gray-500 text-center block">MIN</span>
+                    </div>
+                    <span class="text-lg font-bold text-gray-500">:</span>
+                    <div class="flex-1">
+                        <input type="number" id="targetS" placeholder="00" min="0" max="59" class="w-full bg-gray-900 border border-gray-600 rounded p-1 text-center text-lg text-white mono focus:ring-2 focus:ring-purple-500 focus:outline-none" oninput="calculate()">
+                        <span class="text-[10px] text-gray-500 text-center block">SEC</span>
+                    </div>
+
+                    <!-- AM/PM Toggle -->
+                    <div class="flex flex-col ml-1">
+                        <button id="ampmBtn" onclick="toggleAMPM()" class="bg-gray-900 border border-gray-600 text-white font-bold py-1 px-2 rounded text-xs mono hover:bg-gray-800 w-12 transition-colors h-[38px]">
+                            PM
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Spot Form -->
+        <div class="p-4 bg-gray-800/50 border-b border-gray-700">
+            <label class="block text-[10px] uppercase tracking-wider text-gray-400 font-semibold mb-2">Intro / Commercial Segments</label>
+            <div class="flex flex-col gap-2">
+                <div class="flex gap-2">
+                    <input type="text" id="spotName" placeholder="Segment Name" class="flex-grow bg-gray-900 border border-gray-600 rounded p-2 text-sm text-white placeholder-gray-500 focus:ring-1 focus:ring-purple-500 focus:outline-none">
+                </div>
+                <div class="flex gap-2 items-end">
+                    <div class="w-20">
+                        <label class="text-[10px] text-gray-400 uppercase">Min</label>
+                        <input type="number" id="spotM" placeholder="0" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-center text-white mono text-sm focus:ring-1 focus:ring-green-500 focus:outline-none" onkeypress="handleEnter(event)">
+                    </div>
+                    <div class="w-20">
+                        <label class="text-[10px] text-gray-400 uppercase">Sec</label>
+                        <input type="number" id="spotS" placeholder="0" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-center text-white mono text-sm focus:ring-1 focus:ring-green-500 focus:outline-none" onkeypress="handleEnter(event)">
+                    </div>
+                    <button onclick="addSpot()" class="flex-grow bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded transition-colors h-[38px] flex items-center justify-center gap-2 text-sm">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- List of Spots -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-2" id="spotsList">
+            <!-- Spots injected here by JS -->
+        </div>
+
+        <!-- Clear Button -->
+        <div class="p-3 border-t border-gray-700 bg-gray-900">
+            <button onclick="clearAll()" class="text-xs text-red-400 hover:text-red-300 underline">Clear All Segments</button>
+        </div>
+    </div>
+
+    <!-- Right Panel: Big Data Display -->
+    <div class="w-full md:w-2/3 bg-black flex flex-col relative overflow-hidden">
+
+        <!-- Current Time (Top Right) -->
+        <div class="absolute top-4 right-6 text-right z-10">
+            <div class="text-xs text-gray-500 uppercase tracking-widest font-bold">Current Time</div>
+            <div id="wallClock" class="text-3xl font-bold text-gray-400 mono tabular-nums">00:00:00</div>
+        </div>
+
+        <!-- Center Content -->
+        <div class="flex-1 flex flex-col justify-center items-center p-8 z-10 space-y-8">
+
+            <!-- Main Calc Display -->
+            <div class="text-center">
+                <h2 class="text-gray-500 text-sm uppercase tracking-[0.3em] mb-2">Start Intro At</h2>
+                <div class="flex items-baseline justify-center gap-4">
+                    <div id="startTimeDisplay" class="text-6xl md:text-8xl font-bold mono text-purple-100 tabular-nums tracking-tighter">--:--:--</div>
+                    <div id="startTimeAMPM" class="text-2xl md:text-3xl font-bold text-purple-400">--</div>
+                </div>
+            </div>
+
+            <!-- Heads Up Alert Box -->
+            <div id="alertBox" class="w-full max-w-xl h-48 flex items-center justify-center rounded-xl border-2 border-gray-800 bg-gray-900/50 transition-all duration-200">
+                <div id="alertContent" class="text-center">
+                    <div class="text-gray-600 text-sm font-mono">WAITING FOR TIME...</div>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 gap-8 w-full max-w-lg opacity-60">
+                <div class="text-center border-t border-gray-800 pt-4">
+                    <div class="text-[10px] text-gray-500 uppercase tracking-wide mb-1">Radio Live Time</div>
+                    <div id="displayTarget" class="text-xl font-bold text-gray-400 mono">--:--:--</div>
+                </div>
+                <div class="text-center border-t border-gray-800 pt-4">
+                    <div class="text-[10px] text-gray-500 uppercase tracking-wide mb-1">Total Content</div>
+                    <div id="displayTotal" class="text-xl font-bold text-gray-400 mono">00:00:00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Background Decor -->
+        <div class="absolute bottom-0 left-0 p-8 opacity-5 pointer-events-none">
+            <i class="fas fa-broadcast-tower text-9xl"></i>
+        </div>
+
+        <!-- Atomation Branding -->
+        <div class="absolute bottom-4 right-6 text-right opacity-30">
+            <div class="text-xs text-gray-600 font-bold tracking-wider">ATOMATION</div>
+        </div>
+    </div>
+
+    <script>
+        let spots = [];
+        let isPM = true;
+        let calculatedStartSeconds = null; // Seconds from midnight
+        let timerInterval = null;
+
+        // Initialize
+        function init() {
+            // High frequency update for smoother countdown (approx 30fps)
+            setInterval(updateWallClock, 33);
+            renderSpots();
+        }
+
+        function toggleAMPM() {
+            isPM = !isPM;
+            const btn = document.getElementById('ampmBtn');
+            btn.innerText = isPM ? 'PM' : 'AM';
+            calculate();
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') addSpot();
+        }
+
+        function addSpot() {
+            const m = parseInt(document.getElementById('spotM').value) || 0;
+            const s = parseInt(document.getElementById('spotS').value) || 0;
+            const name = document.getElementById('spotName').value.trim() || `Segment ${spots.length + 1}`;
+
+            if (m === 0 && s === 0) return;
+
+            const durationSec = (m * 60) + s;
+
+            spots.push({
+                id: Date.now(),
+                name: name,
+                duration: durationSec
+            });
+
+            document.getElementById('spotM').value = '';
+            document.getElementById('spotS').value = '';
+            document.getElementById('spotName').value = '';
+            document.getElementById('spotM').focus();
+
+            renderSpots();
+            calculate();
+        }
+
+        function removeSpot(id) {
+            spots = spots.filter(s => s.id !== id);
+            renderSpots();
+            calculate();
+        }
+
+        function clearAll() {
+            if(confirm("Clear all segments?")) {
+                spots = [];
+                renderSpots();
+                calculate();
+            }
+        }
+
+        function renderSpots() {
+            const list = document.getElementById('spotsList');
+
+            if (spots.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center text-gray-500 py-10 italic text-sm" id="emptyState">
+                        Add segments to calculate start time.
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = spots.map((spot, index) => {
+                return `
+                <div class="bg-gray-800 p-2 rounded flex justify-between items-center group animate-pop border border-gray-700 hover:border-gray-600">
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <span class="text-gray-500 text-[10px] font-mono w-4">#${index + 1}</span>
+                        <div class="min-w-0">
+                            <div class="font-semibold text-gray-200 text-sm truncate">${spot.name}</div>
+                            <div class="text-[10px] text-gray-400 mono">${formatDuration(spot.duration)}</div>
+                        </div>
+                    </div>
+                    <button onclick="removeSpot(${spot.id})" class="text-gray-600 hover:text-red-400 transition-colors p-1">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function calculate() {
+            let h = parseInt(document.getElementById('targetH').value);
+            const m = parseInt(document.getElementById('targetM').value) || 0;
+            const s = parseInt(document.getElementById('targetS').value) || 0;
+
+            const targetDisplay = document.getElementById('displayTarget');
+            const startDisplay = document.getElementById('startTimeDisplay');
+            const ampmDisplay = document.getElementById('startTimeAMPM');
+
+            if (isNaN(h)) {
+                calculatedStartSeconds = null;
+                targetDisplay.innerText = "--:--:--";
+                startDisplay.innerText = "--:--:--";
+                ampmDisplay.innerText = "--";
+                resetAlertBox();
+                return;
+            }
+
+            if (isPM && h < 12) h += 12;
+            if (!isPM && h === 12) h = 0;
+
+            let targetSecondsFromMidnight = (h * 3600) + (m * 60) + s;
+            const totalDurationSeconds = spots.reduce((acc, curr) => acc + curr.duration, 0);
+
+            document.getElementById('displayTotal').innerText = formatDuration(totalDurationSeconds, true);
+            targetDisplay.innerText = formatTimeOfDay(targetSecondsFromMidnight);
+
+            let startSeconds = targetSecondsFromMidnight - totalDurationSeconds;
+            if (startSeconds < 0) startSeconds += 86400;
+
+            calculatedStartSeconds = startSeconds;
+
+            const resultTime = formatTimeOfDayParts(startSeconds);
+            startDisplay.innerText = resultTime.time;
+            ampmDisplay.innerText = resultTime.ampm;
+
+            // Note: we let the loop handle alerts to catch the immediate ms update
+        }
+
+        function updateWallClock() {
+            const now = new Date();
+            const h = now.getHours();
+            const m = now.getMinutes();
+            const s = now.getSeconds();
+            const ms = now.getMilliseconds();
+
+            // Format Wall Clock (Keep main clock simple)
+            let displayH = h % 12;
+            if (displayH === 0) displayH = 12;
+            const ampm = h >= 12 ? 'PM' : 'AM';
+
+            const timeStr = `${displayH}:${pad(m)}:${pad(s)} <span class="text-sm text-gray-600 ml-1">${ampm}</span>`;
+
+            const clockEl = document.getElementById('wallClock');
+            if(clockEl.innerHTML !== timeStr) {
+                clockEl.innerHTML = timeStr;
+            }
+
+            checkAlerts(h, m, s, ms);
+        }
+
+        function checkAlerts(curH, curM, curS, curMs) {
+            if (calculatedStartSeconds === null) return;
+
+            // Get current seconds from midnight including milliseconds for smoothness
+            const nowSeconds = (curH * 3600) + (curM * 60) + curS + (curMs / 1000);
+
+            // Calculate delta
+            let diff = calculatedStartSeconds - nowSeconds;
+
+            // Midnight wrap logic for delta
+            if (diff < -43200) diff += 86400;
+            if (diff > 43200) diff -= 86400;
+
+            const box = document.getElementById('alertBox');
+            const content = document.getElementById('alertContent');
+
+            // Reset base styles
+            box.className = "w-full max-w-xl h-48 flex items-center justify-center rounded-xl border-2 transition-all duration-200";
+
+            if (diff > 300) {
+                // > 5 mins away
+                 box.className += " border-gray-800 bg-gray-900/50";
+                 content.innerHTML = `<div class="text-gray-600 text-sm font-mono">ON STANDBY</div><div class="text-gray-700 text-xs mt-2 font-mono">T-MINUS ${formatDuration(Math.floor(diff), true)}</div>`;
+            }
+            else if (diff > 180 && diff <= 300) {
+                 // Between 5 and 3 mins
+                 box.className += " border-yellow-900/30 bg-yellow-900/10";
+                 content.innerHTML = `<div class="text-yellow-600 text-4xl font-black tracking-tighter">5 MIN WARNING</div><div class="text-yellow-700 text-lg mt-2 font-mono">PREPARE FOR INTRO</div>`;
+            }
+            else if (diff > 90 && diff <= 180) {
+                 // Between 3 and 1.5 mins
+                 box.className += " border-orange-900/30 bg-orange-900/10";
+                 content.innerHTML = `<div class="text-orange-500 text-5xl font-black tracking-tighter">3 MIN WARNING</div>`;
+            }
+            else if (diff > 0 && diff <= 90) {
+                 // ACTIVE COUNTDOWN WINDOW (90s to 0s)
+
+                 let colorClass = "text-orange-400";
+                 let bgClass = "border-orange-600 bg-orange-900/20";
+                 let pulseClass = "";
+
+                 if (diff <= 60) {
+                     colorClass = "text-red-400";
+                     bgClass = "border-red-900 bg-red-900/20";
+                 }
+                 if (diff <= 30) {
+                     colorClass = "text-red-500";
+                     bgClass = "border-red-600 bg-red-900/30";
+                     pulseClass = "alert-pulse";
+                 }
+                 if (diff <= 10) {
+                     colorClass = "text-white";
+                     bgClass = "border-red-500 bg-red-600 flash-red";
+                     pulseClass = ""; // Handled by flash-red
+                 }
+
+                 box.className += ` ${bgClass} ${pulseClass}`;
+
+                 // Display countdown with milliseconds
+                 content.innerHTML = `<div class="${colorClass} text-8xl md:text-9xl font-black tracking-tighter mono tabular-nums">${diff.toFixed(2)}</div>`;
+            }
+            else if (diff <= 0 && diff > -5) {
+                 // GO GO GO (Hold for 5 seconds)
+                 box.className += " border-green-500 bg-green-600 flash-green";
+                 content.innerHTML = `<div class="text-white text-8xl font-black tracking-tighter">GO GO GO</div>`;
+            }
+            else {
+                 // Post start
+                 box.className += " border-gray-800 bg-gray-900/50";
+                 content.innerHTML = `<div class="text-gray-600 text-sm font-mono">BROADCAST UNDERWAY</div>`;
+            }
+        }
+
+        function resetAlertBox() {
+            const box = document.getElementById('alertBox');
+            const content = document.getElementById('alertContent');
+            box.className = "w-full max-w-xl h-48 flex items-center justify-center rounded-xl border-2 border-gray-800 bg-gray-900/50 transition-all duration-200";
+            content.innerHTML = `<div class="text-gray-600 text-sm font-mono">WAITING FOR TIME...</div>`;
+        }
+
+        // Helpers
+        function formatDuration(totalSeconds, forceHours = false) {
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = Math.floor(totalSeconds % 60); // Math.floor ensures integers for duration list
+            const mStr = m.toString().padStart(2, '0');
+            const sStr = s.toString().padStart(2, '0');
+            if (h > 0 || forceHours) {
+                const hStr = h.toString().padStart(2, '0');
+                return `${hStr}:${mStr}:${sStr}`;
+            }
+            return `${mStr}:${sStr}`;
+        }
+
+        function formatTimeOfDay(totalSeconds) {
+            const parts = formatTimeOfDayParts(totalSeconds);
+            return `${parts.time} ${parts.ampm}`;
+        }
+
+        function formatTimeOfDayParts(totalSeconds) {
+            let h = Math.floor(totalSeconds / 3600);
+            let m = Math.floor((totalSeconds % 3600) / 60);
+            let s = Math.floor(totalSeconds % 60);
+            h = h % 24;
+            let ampm = "AM";
+            if (h >= 12) { ampm = "PM"; if (h > 12) h -= 12; }
+            if (h === 0) h = 12;
+            return {
+                time: `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`,
+                ampm: ampm
+            };
+        }
+
+        function pad(n) { return n < 10 ? '0' + n : n; }
+
+        init();
+    </script>
+</body>
+</html>
